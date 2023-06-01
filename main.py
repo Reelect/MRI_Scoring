@@ -2,7 +2,8 @@ import sys
 import numpy as np
 import math
 import requests
-from PyQt5.QtWidgets import (QApplication, QWidget, QGridLayout, QLabel, QSpinBox, QDesktopWidget, QPushButton, QDoubleSpinBox, QFrame, QLineEdit, QComboBox, QCheckBox)
+from PyQt5.QtWidgets import (QApplication, QWidget, QGridLayout, QLabel, QSpinBox, QDesktopWidget, QPushButton,
+                             QDoubleSpinBox, QFrame, QLineEdit, QComboBox, QCheckBox)
 from PyQt5.QtGui import QIcon, QPixmap, QFont
 from PyQt5.QtCore import Qt
 from PyQt5 import QtCore
@@ -56,6 +57,32 @@ class MyApp(QWidget, QtStyleTools):
         apply_stylesheet(app, theme='custom.xml', invert_secondary=True)
 
     def initUI(self):
+        self.apt = [
+            "헬리오시티아파트",
+            "LG메트로시티아파트",
+            "잠실파크리오",
+            "잠실엘스아파트",
+            "잠실리센츠",
+            "올림픽선수기자촌아파트",
+            "수원한일타운아파트",
+            "화명롯데캐슬카이저",
+            "고덕그라시움아파트",
+            "DMC파크뷰자이아파트"
+        ]
+
+        self.detail = {
+            "헬리오시티아파트": [9510, 84, 97190],
+            "LG메트로시티아파트": [7374, 74, 1364307],
+            "잠실파크리오": [6864, 66, 1142141],
+            "잠실엘스아파트": [5678, 72, 935380],
+            "잠실리센츠": [5563, 65, 935053],
+            "올림픽선수기자촌아파트": [5540, 122, 854994],
+            "수원한일타운아파트": [5282, 58, 744036],
+            "화명롯데캐슬카이저": [5239, 48, 1047100],
+            "고덕그라시움아파트": [4932, 53, 811620],
+            "DMC파크뷰자이아파트": [4300, 61, 712875]
+        }
+
         grid = QGridLayout()
         self.setLayout(grid)
         self.sc = MplCanvas()
@@ -85,7 +112,7 @@ class MyApp(QWidget, QtStyleTools):
         self.type = QComboBox(self)
         txt = ["아파트", "산업 단지", "병원"]
         self.type.addItems(txt)
-        self.property_boxs = [QSpinBox(), QSpinBox(), QSpinBox(), QSpinBox()]
+        self.property_boxs = [QDoubleSpinBox(), QSpinBox(), QSpinBox(), QSpinBox()]
         self.property_boxs[0].setMaximum(20)
         self.property_boxs[0].setValue(3)
         self.property_boxs[0].setMinimum(1)
@@ -96,9 +123,9 @@ class MyApp(QWidget, QtStyleTools):
         self.property_boxs[1].setMinimum(1)
         self.property_boxs[1].setSuffix("%")
 
-        self.property_boxs[2].setMaximum(100)
+        self.property_boxs[2].setMaximum(60)
         self.property_boxs[2].setValue(30)
-        self.property_boxs[2].setMinimum(1)
+        self.property_boxs[2].setMinimum(20)
         self.property_boxs[2].setSuffix("세")
 
         self.property_boxs[3].setMaximum(100)
@@ -107,13 +134,11 @@ class MyApp(QWidget, QtStyleTools):
         self.property_boxs[3].setSuffix("%")
 
 
-        # google map api
+        #  google map api
 
-        self.lineEdit = QLineEdit(self)
-        self.cmb = QComboBox(self)
-        txt = [str(i) for i in range(1, 21)]
-        self.cmb.addItems(txt)
-        self.cmb.setCurrentIndex(15)
+        # self.lineEdit = QLineEdit(self)
+        self.templine = QComboBox(self)
+        self.templine.addItems(self.apt)
         self.mbtn = QPushButton('구역 검색', self)
         self.img = QLabel('', self)
         self.img.setFrameStyle(QFrame.Box)
@@ -186,14 +211,50 @@ class MyApp(QWidget, QtStyleTools):
         self.move(qr.topLeft())
 
     def get_result(self):
+        temp = self.detail[self.templine.currentText()]
         velocity = 9
-        path = math.sqrt(self.spinboxs[0].value()/self.spinboxs[1].value()) * (1 + self.spinboxs[1].value()) * 1.5
+        path = math.sqrt(temp[2]/self.spinboxs[1].value()) * (1 + self.spinboxs[1].value()) * 1.5
         delivery = path / (velocity * 60)
-        family = self.spinboxs[3].value() / 2.5
-        order_lunch = family * self.spinboxs[2].value() / 9
-        order_dinner = family * self.spinboxs[2].value() / 7
-        order_normal = family * self.spinboxs[2].value() / 5.5
-        order_normal2 = family * self.spinboxs[2].value() / 4.7
+
+        if self.checkboxs[0].isChecked():
+            family = self.property_boxs[0].value() / 2.5
+        else:
+            family = 1
+
+        if self.checkboxs[1].isChecked():
+            order_lunch = family * temp[0] * self.property_boxs[1].value() / (9 * 75)
+            order_dinner = family * temp[0] * self.property_boxs[1].value() / (7 * 75)
+            order_normal = family * temp[0] * self.property_boxs[1].value() / (5.5 * 75)
+            order_normal2 = family * temp[0] * self.property_boxs[1].value() / (4.7 * 75)
+        else:
+            order_lunch = family * temp[0] / 9
+            order_dinner = family * temp[0] / 7
+            order_normal = family * temp[0] / 5.5
+            order_normal2 = family * temp[0] / 4.7
+
+        if self.checkboxs[2].isChecked():
+            age = [13.7, 21.4, 15.3, 4.2, 0.76]
+            avg = 13.84
+            fir = (self.property_boxs[2].value() // 10) - 2
+            if self.property_boxs[2].value() == 60:
+                fir = 3
+            sec = self.property_boxs[2].value() % 10
+            res = (age[fir] * (10 - sec) + age[fir+1] * sec) / (10 * avg)
+            order_lunch = order_lunch * res
+            order_dinner = order_dinner * res
+            order_normal = order_normal * res
+            order_normal2 = order_normal2 * res
+
+        if self.checkboxs[3].isChecked():
+            avg = 25
+            fir = (self.property_boxs[2].value() // 10) - 2
+            sec = self.property_boxs[2].value() % 10
+            res = (age[fir] * (10 - sec) + age[fir+1] * sec) / (10 * avg)
+            order_lunch = order_lunch * res
+            order_dinner = order_dinner * res
+            order_normal = order_normal * res
+            order_normal2 = order_normal2 * res
+
 
         # take x, y
         xs = np.linspace(1, 300, 3000)
@@ -312,8 +373,8 @@ class MyApp(QWidget, QtStyleTools):
     def map_search(self):
         BASE_URL = 'https://maps.googleapis.com/maps/api/staticmap?'
         API_KEY = 'AIzaSyAa3teUmXVM47Z5wzAQ5pmPnFGhKPH-z5o'
-        ZOOM = self.cmb.currentIndex() + 1
-        CITY = self.lineEdit.text()
+        ZOOM = 17
+        CITY = self.templine.currentText()
 
         W = self.img.width()
         H = self.img.height()
