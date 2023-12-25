@@ -17,31 +17,6 @@ class MyApp(QWidget, QtStyleTools):
         apply_stylesheet(app, theme='custom.xml', invert_secondary=True)
 
     def initUI(self):
-        self.apt = [
-            "헬리오시티아파트",
-            "LG메트로시티아파트",
-            "잠실파크리오",
-            "잠실엘스아파트",
-            "잠실리센츠",
-            "올림픽선수기자촌아파트",
-            "수원한일타운아파트",
-            "화명롯데캐슬카이저",
-            "고덕그라시움아파트",
-            "DMC파크뷰자이아파트"
-        ]
-
-        self.detail = {
-            "헬리오시티아파트": [9510, 84, 97190],
-            "LG메트로시티아파트": [7374, 74, 1364307],
-            "잠실파크리오": [6864, 66, 1142141],
-            "잠실엘스아파트": [5678, 72, 935380],
-            "잠실리센츠": [5563, 65, 935053],
-            "올림픽선수기자촌아파트": [5540, 122, 854994],
-            "수원한일타운아파트": [5282, 58, 744036],
-            "화명롯데캐슬카이저": [5239, 48, 1047100],
-            "고덕그라시움아파트": [4932, 53, 811620],
-            "DMC파크뷰자이아파트": [4300, 61, 712875]
-        }
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -123,26 +98,6 @@ class MyApp(QWidget, QtStyleTools):
         grid.addWidget(self.checkboxs[3], 11, 3, 1, 2)
         grid.addWidget(self.property_boxs[3], 11, 5)
 
-
-
-        """
-        grid.addWidget(QLabel('면적: '), 0, 12, alignment=QtCore.Qt.AlignRight)
-        grid.addWidget(self.spinboxs[0], 0, 13)
-        grid.addWidget(QLabel('미터제곱'), 0, 14)
-        
-
-        grid.addWidget(QLabel('가로:세로 비율: '), 0, 15, alignment=QtCore.Qt.AlignRight)
-        grid.addWidget(self.spinboxs[1], 0, 16)
-        grid.addWidget(QLabel(':1'), 0, 17)
-
-        grid.addWidget(QLabel('세대수: '), 0, 18, alignment=QtCore.Qt.AlignRight)
-        grid.addWidget(self.spinboxs[2], 0, 19)
-        grid.addWidget(QLabel('세대'), 0, 20)
-
-        grid.addWidget(QLabel('세대 당 구성원'), 0, 21, alignment=QtCore.Qt.AlignRight)
-        grid.addWidget(self.spinboxs[3], 0, 22)
-        grid.addWidget(QLabel('명'), 0, 23)
-        """
 
         grid.addWidget(btn, 0, 10)
 
