@@ -13,6 +13,7 @@ class MyApp(QWidget, QtStyleTools):
 
     def __init__(self):
         super().__init__()
+        self.colbox = QComboBox()
         self.initUI()
         apply_stylesheet(app, theme='custom.xml', invert_secondary=True)
 
@@ -20,6 +21,9 @@ class MyApp(QWidget, QtStyleTools):
 
         grid = QGridLayout()
         self.setLayout(grid)
+
+
+
         self.spinboxs = [QDoubleSpinBox(), QDoubleSpinBox(), QSpinBox(), QDoubleSpinBox()]
         btn = QPushButton("결과 확인", self)
         for spinbox in self.spinboxs:
