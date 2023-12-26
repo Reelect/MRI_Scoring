@@ -1,19 +1,70 @@
+import os
 import sys
-from PyQt5.QtWidgets import (QApplication, QWidget, QGridLayout, QLabel, QSpinBox, QDesktopWidget, QPushButton,
-                             QDoubleSpinBox, QFrame, QLineEdit, QComboBox, QCheckBox)
-from PyQt5.QtGui import QIcon, QPixmap, QFont
-from PyQt5.QtCore import Qt
-from PyQt5 import QtCore
+from PyQt5.QtWidgets import (QApplication, QWidget, QGridLayout, QLabel, QDesktopWidget, QPushButton,
+                             QLineEdit, QComboBox, QFileDialog, QTableView, QProgressDialog, QSpinBox,
+                             QMessageBox)
+from PyQt5.QtCore import QAbstractTableModel, Qt, pyqtSignal, QThread
 from qt_material import apply_stylesheet, QtStyleTools
+import pandas as pd
+
+from util import get_dataframe, get_colum_name, replace_filename_by_col
 
 sys.path.append(".")
+
+
+class WorkerThread(QThread):
+    finished = pyqtSignal()
+
+    def __init__(self, df: pd.DataFrame, code_col: str, subject_col: str, path, index):
+        super().__init__()
+        self.df = df
+        self.code_col = code_col
+        self.subject_col = subject_col
+        self.path = path
+        self.index = index
+
+    def run(self):
+        # 긴 작업을 여기서 수행합니다. 예를 들어, 시간 지연을 사용합니다.
+        replace_filename_by_col(self.df, self.code_col, self.subject_col, self.path, self.index)
+        self.finished.emit()  # 작업 완료 시그널 발생
+
+
+class PandasModel(QAbstractTableModel):
+    def __init__(self, data=pd.DataFrame()):
+        QAbstractTableModel.__init__(self)
+        self._data = data
+
+    def updateData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+    def rowCount(self, parent=None):
+        return self._data.shape[0]
+
+    def columnCount(self, parent=None):
+        return self._data.shape[1]
+
+    def data(self, index, role=Qt.DisplayRole):
+        if index.isValid() and role == Qt.DisplayRole:
+            return str(self._data.iloc[index.row(), index.column()])
+        return None
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return str(self._data.columns[section])
+            else:
+                return str(self._data.index[section])
+        return None
 
 
 class MyApp(QWidget, QtStyleTools):
 
     def __init__(self):
         super().__init__()
-        self.colbox = QComboBox()
+        self.code_col = QComboBox()
+        self.sub_col = QComboBox()
         self.initUI()
         apply_stylesheet(app, theme='custom.xml', invert_secondary=True)
 
@@ -22,94 +73,67 @@ class MyApp(QWidget, QtStyleTools):
         grid = QGridLayout()
         self.setLayout(grid)
 
+        self.file_sel_text = QLabel(self)
+        self.file_sel_text.setText('파일명 :')
+        self.file_path = QLineEdit(self)
+        self.file_path.setReadOnly(True)
+        self.file_sel_btn = QPushButton(self)
+        self.file_sel_btn.setText('파일 선택(.csv, .xlsx)')
+        self.file_sel_btn.clicked.connect(lambda: self.file_choose(self.file_path))
+        # Table view
+        self.view = QTableView()
+        self.model = PandasModel()
+        self.view.setModel(self.model)
+        # Data Frame Load
+        self.ex_btn = QPushButton(self)
+        self.ex_btn.setText('액셀 읽기')
+        self.ex_btn.clicked.connect(self.show_table)
+
+        self.dir_sel_text = QLabel(self)
+        self.dir_sel_text.setText('폴더명 :')
+        self.dir_path = QLineEdit(self)
+        self.dir_path.setText("Z:\\윤국연\\2024_DB")
+        self.dir_path.setReadOnly(True)
+        self.dir_sel_btn = QPushButton(self)
+        self.dir_sel_btn.setText('폴더 선택')
+        self.dir_sel_btn.clicked.connect(lambda: self.folder_choose(self.dir_path))
+        self.name_change_btn = QPushButton(self)
+        self.name_change_btn.setText('파일 이름 바꾸기')
+        self.name_change_btn.clicked.connect(self.rename)
+
+        # col selection
+        self.idx_sel = QLabel(self)
+        self.idx_sel.setText('데이터 시작 행 번호:')
+        self.spin = QSpinBox(self)
+        self.spin.setMinimum(0)
+        self.c_col_sel = QLabel(self)
+        self.c_col_sel.setText('지문코드 열:')
+        self.s_col_sel = QLabel(self)
+        self.s_col_sel.setText('지문주제 열 :')
+
+        # file alignment
+        grid.addWidget(self.file_sel_text, 0, 0)
+        grid.addWidget(self.file_path, 0, 1, 1, 5)
+        grid.addWidget(self.file_sel_btn, 0, 6, 1, 2)
+        grid.addWidget(self.ex_btn, 0, 8)
+        # view alignment
+        grid.addWidget(self.view, 1, 0, 7, 9)
+        # col selection alignment
+        grid.addWidget(self.idx_sel, 8, 0)
+        grid.addWidget(self.spin, 8, 1, 1, 2)
+        grid.addWidget(self.c_col_sel, 8, 3, 1, 1)
+        grid.addWidget(self.code_col, 8, 4, 1, 2)
+        grid.addWidget(self.s_col_sel, 8, 6, 1, 1)
+        grid.addWidget(self.sub_col, 8, 7, 1, 2)
+        # dir alignment
+        grid.addWidget(self.dir_sel_text, 9, 0)
+        grid.addWidget(self.dir_path, 9, 1, 1, 6)
+        grid.addWidget(self.dir_sel_btn, 9, 7)
+        grid.addWidget(self.name_change_btn, 9, 8)
 
 
-        self.spinboxs = [QDoubleSpinBox(), QDoubleSpinBox(), QSpinBox(), QDoubleSpinBox()]
-        btn = QPushButton("결과 확인", self)
-        for spinbox in self.spinboxs:
-            spinbox.setMinimum(1)
-        self.spinboxs[0].setMaximum(1400000)
-        self.spinboxs[0].setValue(500000)
-        self.spinboxs[1].setMaximum(10)
-        self.spinboxs[2].setMaximum(10000)
-        self.spinboxs[2].setValue(1000)
-        self.spinboxs[3].setMaximum(10)
-        self.spinboxs[3].setValue(2.5)
-
-        self.spinboxs[0].setSingleStep(1000)
-
-        # 구역 특성 설정 spinbox
-        self.checkboxs = [
-            QCheckBox('세대 당 구성원 수', self),
-            QCheckBox('실거주 세대 비율', self),
-            QCheckBox('주요 나이대 설정', self),
-            QCheckBox('1일 평균 주문 비율', self)
-        ]
-        self.type = QComboBox(self)
-        txt = ["아파트", "산업 단지", "병원"]
-        self.type.addItems(txt)
-        self.property_boxs = [QDoubleSpinBox(), QSpinBox(), QSpinBox(), QSpinBox()]
-        self.property_boxs[0].setMaximum(20)
-        self.property_boxs[0].setValue(3)
-        self.property_boxs[0].setMinimum(1)
-        self.property_boxs[0].setSuffix("명")
-
-        self.property_boxs[1].setMaximum(100)
-        self.property_boxs[1].setValue(75)
-        self.property_boxs[1].setMinimum(1)
-        self.property_boxs[1].setSuffix("%")
-
-        self.property_boxs[2].setMaximum(60)
-        self.property_boxs[2].setValue(30)
-        self.property_boxs[2].setMinimum(20)
-        self.property_boxs[2].setSuffix("세")
-
-        self.property_boxs[3].setMaximum(100)
-        self.property_boxs[3].setValue(25)
-        self.property_boxs[3].setMinimum(0)
-        self.property_boxs[3].setSuffix("%")
-
-
-        #  google map api
-
-        # self.lineEdit = QLineEdit(self)
-        self.templine = QComboBox(self)
-        self.templine.addItems(self.apt)
-        self.mbtn = QPushButton('구역 검색', self)
-        self.img = QLabel('', self)
-        self.img.setFrameStyle(QFrame.Box)
-
-        # map alignment
-        grid.addWidget(QLabel('구역 검색 '), 0, 0, alignment=QtCore.Qt.AlignRight)
-        grid.addWidget(self.mbtn, 0, 7, 1, 2)
-        grid.addWidget(self.img, 1, 0, 7, 9)
-
-        #  구역 특성 설정 섹션
-        grid.addWidget(QLabel('구역 특성 설정'), 8, 0, alignment=QtCore.Qt.AlignLeft)
-
-        grid.addWidget(QLabel('구역 종류 : '), 9, 0, alignment=QtCore.Qt.AlignRight)
-        grid.addWidget(self.type, 9, 1, 1, 1)
-
-        grid.addWidget(self.checkboxs[0], 10, 0, 1, 2)
-        grid.addWidget(self.property_boxs[0], 10, 2)
-
-        grid.addWidget(self.checkboxs[1], 10, 3, 1, 2)
-        grid.addWidget(self.property_boxs[1], 10, 5)
-
-        grid.addWidget(self.checkboxs[2], 11, 0, 1, 2)
-        grid.addWidget(self.property_boxs[2], 11, 2)
-
-        grid.addWidget(self.checkboxs[3], 11, 3, 1, 2)
-        grid.addWidget(self.property_boxs[3], 11, 5)
-
-
-        grid.addWidget(btn, 0, 10)
-
-
-
-        self.setWindowTitle('아파트 단지 면적 및 세대수에 따른 필요 배송 로봇 수 계산기')
-        self.setWindowIcon(QIcon('logo.png'))
-        self.resize(1800, 900)
+        self.setWindowTitle('엑셀 기준 지문 이름 재지정 프로그램')
+        self.resize(800, 1000)
         self.center()
         self.show()
 
@@ -118,6 +142,46 @@ class MyApp(QWidget, QtStyleTools):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def file_choose(self, x):
+        file, check = QFileDialog.getOpenFileName(self,
+                                                  self.tr("엑셀 파일 선택"),
+                                                  "/",
+                                                  self.tr("Excel files (*.xlsx);;CSV files (*.csv)"))
+        if check:
+            x.setText(file)
+
+    def folder_choose(self, x):
+        folder = QFileDialog.getExistingDirectory(self,
+                                                  self.tr("이름을 바꿀 폴더 선택"),
+                                                  "/")
+        x.setText(folder)
+
+    def show_table(self):
+        df = get_dataframe(self.file_path.text())
+        cols = get_colum_name(df)
+        self.code_col.addItems(cols)
+        self.sub_col.addItems(cols)
+        self.model.updateData(df)
+
+    def rename(self):
+        root = os.path.join(self.dir_path.text())
+        # popup
+        self.progressDialog = QProgressDialog("이름 변환 진행중...", "Abort", 0, 0, self)
+        self.progressDialog.setCancelButton(None)  # 취소 버튼 비활성화
+        self.progressDialog.setModal(True)  # 모달 다이얼로그로 설정
+        self.progressDialog.setAutoClose(False)  # 작업 완료시 자동으로 닫히지 않도록 설정
+        self.progressDialog.show()
+
+        # 작업 스레드 생성 및 시작
+        self.thread = WorkerThread(self.model._data, self.code_col.currentText(), self.sub_col.currentText(), root, self.spin.value())
+        self.thread.finished.connect(self.taskFinished)
+        self.thread.start()
+
+    def taskFinished(self):
+        # 작업 완료 시, 프로그레스 다이얼로그 닫기
+        self.progressDialog.close()
+        QMessageBox.information(self, "완료", "작업이 완료되었습니다.")
 
 
 if __name__ == '__main__':
