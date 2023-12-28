@@ -17,6 +17,7 @@ def get_colum_name(dataframe: pd.DataFrame):
 
 def replace_filename_by_col(df: pd.DataFrame, code_col: str, subject_col: str, path, index: int):
     temp = 0
+    path = os.path.join(path)
     for _, item in df.iterrows():
         if temp < index:
             temp += 1

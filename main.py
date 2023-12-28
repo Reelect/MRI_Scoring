@@ -24,7 +24,7 @@ class WorkerThread(QThread):
         self.index = index
 
     def run(self):
-        # 긴 작업을 여기서 수행합니다. 예를 들어, 시간 지연을 사용합니다.
+        # 긴 작업을 여기서 수행
         replace_filename_by_col(self.df, self.code_col, self.subject_col, self.path, self.index)
         self.finished.emit()  # 작업 완료 시그널 발생
 
@@ -66,7 +66,7 @@ class MyApp(QWidget, QtStyleTools):
         self.code_col = QComboBox()
         self.sub_col = QComboBox()
         self.initUI()
-        apply_stylesheet(app, theme='custom.xml', invert_secondary=True)
+        apply_stylesheet(app, theme='custom.xml', invert_secondary=True)  # abs path required
 
     def initUI(self):
 
@@ -133,7 +133,7 @@ class MyApp(QWidget, QtStyleTools):
 
 
         self.setWindowTitle('엑셀 기준 지문 이름 재지정 프로그램')
-        self.resize(800, 1000)
+        self.resize(800, 800)
         self.center()
         self.show()
 
@@ -158,7 +158,8 @@ class MyApp(QWidget, QtStyleTools):
         x.setText(folder)
 
     def show_table(self):
-        df = get_dataframe(self.file_path.text())
+        path = os.path.join(self.file_path.text())
+        df = get_dataframe(path)
         cols = get_colum_name(df)
         self.code_col.addItems(cols)
         self.sub_col.addItems(cols)
