@@ -132,7 +132,7 @@ class MyApp(QWidget, QtStyleTools):
         grid.addWidget(self.name_change_btn, 9, 8)
 
 
-        self.setWindowTitle('엑셀 기준 지문 이름 재지정 프로그램')
+        self.setWindowTitle('학생 시험 응답 통계 생성기')
         self.resize(800, 800)
         self.center()
         self.show()
