@@ -7,7 +7,7 @@ from PyQt5.QtCore import QAbstractTableModel, Qt, pyqtSignal, QThread
 from qt_material import apply_stylesheet, QtStyleTools
 import pandas as pd
 
-from util import get_dataframe, get_colum_name, replace_filename_by_col
+from util import get_dataframe, get_colum_name, get_score_summary, get_rank_list
 
 sys.path.append(".")
 
@@ -15,17 +15,21 @@ sys.path.append(".")
 class WorkerThread(QThread):
     finished = pyqtSignal()
 
-    def __init__(self, df: pd.DataFrame, code_col: str, subject_col: str, path, index):
+    def __init__(self, df: pd.DataFrame, cols: list[str], ans: list[str], path, dest):
         super().__init__()
         self.df = df
-        self.code_col = code_col
-        self.subject_col = subject_col
+        self.cols = cols
+        self.ans = ans
         self.path = path
-        self.index = index
+        self.dest = dest
 
     def run(self):
         # 긴 작업을 여기서 수행
-        replace_filename_by_col(self.df, self.code_col, self.subject_col, self.path, self.index)
+        rank_df = get_rank_list(self.df)
+        stat_df = get_score_summary(self.df, self.cols, self.ans)
+        final_df = pd.concat([rank_df, stat_df], axis=1)
+        base_name = os.path.basename(self.path).split(".")[0]
+        final_df.to_excel(self.dest + "/" + base_name + "점수_통계.xlsx", index=False, header=True)
         self.finished.emit()  # 작업 완료 시그널 발생
 
 
@@ -98,12 +102,13 @@ class MyApp(QWidget, QtStyleTools):
         self.name_change_btn.clicked.connect(self.rename)
 
         # col selection
-        self.spin = QSpinBox(self)
-        self.spin.setMinimum(0)
+        self.answers = QLabel(self)
+        self.answers.setText('정답 입력: ')
+        self.spin = QLineEdit(self)
         self.c_col_sel = QLabel(self)
-        self.c_col_sel.setText('지문코드 열:')
+        self.c_col_sel.setText('문항번호 시작 열:')
         self.s_col_sel = QLabel(self)
-        self.s_col_sel.setText('지문주제 열 :')
+        self.s_col_sel.setText('문항번호 끝 열 :')
 
         # file alignment
         grid.addWidget(self.file_sel_text, 0, 0)
@@ -112,11 +117,12 @@ class MyApp(QWidget, QtStyleTools):
         # view alignment
         grid.addWidget(self.view, 1, 0, 7, 9)
         # col selection alignment
+        grid.addWidget(self.answers, 8, 0)
         grid.addWidget(self.spin, 8, 1, 1, 2)
         grid.addWidget(self.c_col_sel, 8, 3, 1, 1)
-        grid.addWidget(self.code_col, 8, 4, 1, 2)
-        grid.addWidget(self.s_col_sel, 8, 6, 1, 1)
-        grid.addWidget(self.sub_col, 8, 7, 1, 2)
+        grid.addWidget(self.code_col, 8, 4, 1, 3)
+        grid.addWidget(self.s_col_sel, 8, 7, 1, 1)
+        grid.addWidget(self.sub_col, 8, 8, 1, 1)
         # dir alignment
         grid.addWidget(self.dir_sel_text, 9, 0)
         grid.addWidget(self.dir_path, 9, 1, 1, 6)
@@ -139,7 +145,7 @@ class MyApp(QWidget, QtStyleTools):
         files, check = QFileDialog.getOpenFileNames(self,
                                                   self.tr("엑셀 파일 선택"),
                                                   "/",
-                                                  self.tr("Excel files (*.xls*);;CSV files (*.csv)"))
+                                                  self.tr("Excel files (*.xlsx);;CSV files (*.csv)"))
         if check:
             self.file_path.clear()
             self.file_path.addItems(files)
@@ -159,7 +165,14 @@ class MyApp(QWidget, QtStyleTools):
         self.model.updateData(df)
 
     def rename(self):
-        root = os.path.join(self.dir_path.text())
+        save_destination = os.path.join(self.dir_path.text())
+        cols = [str(i) for i in range(int(self.code_col.currentText()),
+                                                          int(self.sub_col.currentText()) + 1)]
+        answers = self.spin.text().split(" ")
+        if len(cols) != len(answers):
+            QMessageBox.information(self, "확인", "정답 형식을 올바르게 입력해주세요. 공백으로 정답을 구분합니다.")
+            return
+
         # popup
         self.progressDialog = QProgressDialog("이름 변환 진행중...", "Abort", 0, 0, self)
         self.progressDialog.setCancelButton(None)  # 취소 버튼 비활성화
@@ -168,7 +181,11 @@ class MyApp(QWidget, QtStyleTools):
         self.progressDialog.show()
 
         # 작업 스레드 생성 및 시작
-        self.thread = WorkerThread(self.model._data, self.code_col.currentText(), self.sub_col.currentText(), root, self.spin.value())
+        self.thread = WorkerThread(self.model._data,
+                                   cols,
+                                   answers,
+                                   self.file_path.currentText(),
+                                   save_destination)
         self.thread.finished.connect(self.taskFinished)
         self.thread.start()
 

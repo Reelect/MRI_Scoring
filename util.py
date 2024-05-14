@@ -29,7 +29,7 @@ def get_score_summary(df: pd.DataFrame, cols: list[str], answers: list[str]) -> 
 
         ratio = [100 * element / sum(result) for element in result]
 
-        last = [f"{col}번 정답", answers[col_i], "정답률", ratio[int(answers[col_i])]]
+        last = [f"{col}번 정답", answers[col_i], "정답률", ratio[int(answers[col_i])-1]]
 
         if min_correct > ratio[int(answers[col_i])]:
             min_correct = ratio[int(answers[col_i])]
@@ -46,7 +46,7 @@ def get_score_summary(df: pd.DataFrame, cols: list[str], answers: list[str]) -> 
     return stats
 
 
-def get_rank_list(df: pd.DataFrame, high: int) -> pd.DataFrame:
+def get_rank_list(df: pd.DataFrame) -> pd.DataFrame:
     high_count = 0
     sorted_df = df[["성명", "점수"]].sort_values(by=['점수', '성명'], ascending=[False, True])
     sorted_df = sorted_df.reset_index(drop=True)
@@ -58,5 +58,5 @@ def get_rank_list(df: pd.DataFrame, high: int) -> pd.DataFrame:
     sorted_df = sorted_df[['등수'] + [col for col in sorted_df.columns if col != '등수']]
     score_counts = sorted_df['점수'].value_counts().reset_index()
     score_counts.columns = ['점수 분포', '인원 수']
-    score_counts = score_counts.sort_values(by=['점수 분포'])
+    score_counts = score_counts.sort_values(by=['점수 분포']).reset_index(drop=True)
     return pd.concat([sorted_df, score_counts], axis=1)
