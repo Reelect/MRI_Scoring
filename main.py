@@ -75,11 +75,11 @@ class MyApp(QWidget, QtStyleTools):
 
         self.file_sel_text = QLabel(self)
         self.file_sel_text.setText('파일명 :')
-        self.file_path = QLineEdit(self)
-        self.file_path.setReadOnly(True)
+        self.file_path = QComboBox(self)
+        self.file_path.currentTextChanged.connect(self.show_table)
         self.file_sel_btn = QPushButton(self)
         self.file_sel_btn.setText('파일 선택(.csv, .xlsx)')
-        self.file_sel_btn.clicked.connect(lambda: self.file_choose(self.file_path))
+        self.file_sel_btn.clicked.connect(self.file_choose)
         # Table view
         self.view = QTableView()
         self.model = PandasModel()
@@ -143,13 +143,14 @@ class MyApp(QWidget, QtStyleTools):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def file_choose(self, x):
-        file, check = QFileDialog.getOpenFileName(self,
+    def file_choose(self):
+        files, check = QFileDialog.getOpenFileNames(self,
                                                   self.tr("엑셀 파일 선택"),
                                                   "/",
-                                                  self.tr("Excel files (*.xlsx);;CSV files (*.csv)"))
+                                                  self.tr("Excel files (*.xls*);;CSV files (*.csv)"))
         if check:
-            x.setText(file)
+            self.file_path.clear()
+            self.file_path.addItems(files)
 
     def folder_choose(self, x):
         folder = QFileDialog.getExistingDirectory(self,
@@ -158,7 +159,7 @@ class MyApp(QWidget, QtStyleTools):
         x.setText(folder)
 
     def show_table(self):
-        path = os.path.join(self.file_path.text())
+        path = os.path.join(self.file_path.currentText())
         df = get_dataframe(path)
         cols = get_colum_name(df)
         self.code_col.addItems(cols)
