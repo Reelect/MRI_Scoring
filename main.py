@@ -84,10 +84,6 @@ class MyApp(QWidget, QtStyleTools):
         self.view = QTableView()
         self.model = PandasModel()
         self.view.setModel(self.model)
-        # Data Frame Load
-        self.ex_btn = QPushButton(self)
-        self.ex_btn.setText('액셀 읽기')
-        self.ex_btn.clicked.connect(self.show_table)
 
         self.dir_sel_text = QLabel(self)
         self.dir_sel_text.setText('폴더명 :')
@@ -95,15 +91,13 @@ class MyApp(QWidget, QtStyleTools):
         self.dir_path.setText("Z:\\윤국연\\2024_DB")
         self.dir_path.setReadOnly(True)
         self.dir_sel_btn = QPushButton(self)
-        self.dir_sel_btn.setText('폴더 선택')
+        self.dir_sel_btn.setText('저장 위치 선택')
         self.dir_sel_btn.clicked.connect(lambda: self.folder_choose(self.dir_path))
         self.name_change_btn = QPushButton(self)
-        self.name_change_btn.setText('파일 이름 바꾸기')
+        self.name_change_btn.setText('저장하기')
         self.name_change_btn.clicked.connect(self.rename)
 
         # col selection
-        self.idx_sel = QLabel(self)
-        self.idx_sel.setText('데이터 시작 행 번호:')
         self.spin = QSpinBox(self)
         self.spin.setMinimum(0)
         self.c_col_sel = QLabel(self)
@@ -113,13 +107,11 @@ class MyApp(QWidget, QtStyleTools):
 
         # file alignment
         grid.addWidget(self.file_sel_text, 0, 0)
-        grid.addWidget(self.file_path, 0, 1, 1, 5)
-        grid.addWidget(self.file_sel_btn, 0, 6, 1, 2)
-        grid.addWidget(self.ex_btn, 0, 8)
+        grid.addWidget(self.file_path, 0, 1, 1, 7)
+        grid.addWidget(self.file_sel_btn, 0, 8)
         # view alignment
         grid.addWidget(self.view, 1, 0, 7, 9)
         # col selection alignment
-        grid.addWidget(self.idx_sel, 8, 0)
         grid.addWidget(self.spin, 8, 1, 1, 2)
         grid.addWidget(self.c_col_sel, 8, 3, 1, 1)
         grid.addWidget(self.code_col, 8, 4, 1, 2)
