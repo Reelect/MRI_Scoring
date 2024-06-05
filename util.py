@@ -29,15 +29,15 @@ def get_score_summary(df: pd.DataFrame, cols: list[str], answers: list[str]) -> 
 
         ratio = [100 * element / sum(result) for element in result]
 
-        last = [f"{col}번 정답", answers[col_i], "정답률", ratio[int(answers[col_i])-1]]
+        last = [f"{col}번 정답", answers[col_i], "정답률(%)", ratio[int(answers[col_i])-1]]
 
         if min_correct > ratio[int(answers[col_i])]:
             min_correct = ratio[int(answers[col_i])]
             min_correct_problem_number = col_i + 1
 
         # 각각의 리스트를 데이터프레임으로 변환하여 추가
-        stats = pd.concat([stats, pd.DataFrame([[f"{col}번 선택 분포"] + result])], ignore_index=True)
-        stats = pd.concat([stats, pd.DataFrame([[f"{col}번 선택 비율"] + ratio])], ignore_index=True)
+        stats = pd.concat([stats, pd.DataFrame([[f"{col}번 선택 분포(명)"] + result])], ignore_index=True)
+        stats = pd.concat([stats, pd.DataFrame([[f"{col}번 선택 비율(%)"] + ratio])], ignore_index=True)
         stats = pd.concat([stats, pd.DataFrame([last])], ignore_index=True)
 
     stats = pd.concat([stats, pd.DataFrame([["최저 정답률", min_correct, "문제번호", min_correct_problem_number]])],

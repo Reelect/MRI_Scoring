@@ -157,7 +157,7 @@ class MyApp(QWidget, QtStyleTools):
         x.setText(folder)
 
     def show_table(self):
-        path = os.path.join(self.file_path.currentText())
+        path = self.file_path.currentText()
         df = get_dataframe(path)
         cols = get_colum_name(df)
         self.code_col.addItems(cols)
@@ -180,8 +180,10 @@ class MyApp(QWidget, QtStyleTools):
         self.progressDialog.setAutoClose(False)  # 작업 완료시 자동으로 닫히지 않도록 설정
         self.progressDialog.show()
 
+        dfs = [get_dataframe(self.file_path.itemText(i)) for i in range(self.file_path.count())]
+        final_df = pd.concat(dfs, axis=0)
         # 작업 스레드 생성 및 시작
-        self.thread = WorkerThread(self.model._data,
+        self.thread = WorkerThread(final_df,
                                    cols,
                                    answers,
                                    self.file_path.currentText(),
